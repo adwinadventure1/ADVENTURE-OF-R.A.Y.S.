@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Group of Glory HQ</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: Arial;
+  background: #000;
+  color: #00ff88;
+}
+
+.center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
+}
+
+input, button {
+  padding: 10px;
+  margin: 5px;
+  width: 250px;
+}
+
+button {
+  background: #00ff88;
+  border: none;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.panel {
+  padding: 20px;
+}
+
+.card {
+  border: 1px solid #00ff88;
+  margin: 10px;
+  padding: 10px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="auth" class="center">
+  <h2>HQ LOGIN</h2>
+  <input id="email" placeholder="Email">
+  <input id="password" type="password" placeholder="Password">
+  <button onclick="login()">LOGIN</button>
+  <button onclick="signup()">SIGN UP</button>
+</div>
+
+<div id="hq" style="display:none;" class="panel">
+  <h2>MISSION CONTROL HQ</h2>
+
+  <input id="mission" placeholder="Assign Mission">
+  <button onclick="addMission()">ADD MISSION</button>
+
+  <h3>MISSIONS</h3>
+  <div id="list"></div>
+
+  <button onclick="logout()">LOGOUT</button>
+</div>
+
+<script type="module">
+
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import {
+  getAuth,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  onSnapshot
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+/* 🔥 YOUR FIREBASE CONFIG HERE */
+const firebaseConfig = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "XXXX",
+  appId: "XXXX"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let user = null;
+
+/* LOGIN STATE */
+onAuthStateChanged(auth, (u) => {
+  user = u;
+
+  if (user) {
+    document.getElementById("auth").style.display = "none";
+    document.getElementById("hq").style.display = "block";
+    loadMissions();
+  } else {
+    document.getElementById("auth").style.display = "flex";
+    document.getElementById("hq").style.display = "none";
+  }
+});
+
+window.signup = async function () {
+  await createUserWithEmailAndPassword(
+    auth,
+    email.value,
+    password.value
+  );
+};
+
+window.login = async function () {
+  await signInWithEmailAndPassword(
+    auth,
+    email.value,
+    password.value
+  );
+};
+
+window.logout = function () {
+  signOut(auth);
+};
+
+window.addMission = async function () {
+  if (!user) return;
+
+  await addDoc(collection(db, "missions"), {
+    text: mission.value,
+    user: user.email,
+    time: Date.now()
+  });
+
+  mission.value = "";
+};
+
+function loadMissions() {
+  const q = collection(db, "missions");
+
+  onSnapshot(q, (snap) => {
+    let html = "";
+
+    snap.forEach(doc => {
+      let d = doc.data();
+      html += `
+        <div class="card">
+          <b>${d.text}</b><br>
+          Assigned by: ${d.user}
+        </div>
+      `;
+    });
+
+    document.getElementById("list").innerHTML = html;
+  });
+}
+
+</script>
+
+</body>
+</html>
